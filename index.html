@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Gainer Scanner — Bybit × Lighter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #111318;
+    --bg3: #191c24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #8a8f9e;
+    --text3: #555b6e;
+    --green: #00e676;
+    --green-dim: rgba(0,230,118,0.12);
+    --green-border: rgba(0,230,118,0.3);
+    --blue: #4fc3f7;
+    --blue-dim: rgba(79,195,247,0.1);
+    --blue-border: rgba(79,195,247,0.3);
+    --amber: #ffb74d;
+    --amber-dim: rgba(255,183,77,0.1);
+    --red: #ef5350;
+    --red-dim: rgba(239,83,80,0.1);
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* TOP NAV */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #00e676 0%, #4fc3f7 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .nav-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .nav-sub {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    margin-top: 1px;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .live-dot {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+  }
+
+  .pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .btn-refresh {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-refresh:hover { background: var(--bg2); color: var(--text); border-color: var(--border2); }
+  .btn-refresh:active { transform: scale(0.96); }
+  .btn-refresh.loading svg { animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat-box {
+    padding: 12px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-box:last-child { border-right: none; }
+
+  .stat-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+
+  .stat-value.green { color: var(--green); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.amber { color: var(--amber); }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .pill-group {
+    display: flex;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .pill {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    font-family: var(--font-display);
+    transition: all 0.15s;
+  }
+  .pill.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .pill:hover:not(.active) { color: var(--text2); }
+
+  .sort-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .sort-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+  }
+
+  .sort-select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .min-change-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .min-change-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+  }
+
+  .min-change-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    width: 60px;
+    outline: none;
+    text-align: center;
+  }
+  .min-change-input:focus { border-color: var(--border2); }
+
+  /* COIN LIST */
+  .coin-list {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 0 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .coin-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .coin-card:hover {
+    border-color: var(--border2);
+    background: var(--bg3);
+    transform: translateY(-1px);
+  }
+
+  .coin-card:active { transform: scale(0.99); }
+
+  .coin-card.on-lighter {
+    border-color: var(--green-border);
+  }
+
+  .coin-card.on-lighter::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green) 0%, transparent 100%);
+  }
+
+  .coin-card.bybit-only {
+    border-color: var(--border);
+  }
+
+  .card-row1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 9px;
+  }
+
+  .coin-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rank-badge {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    min-width: 22px;
+    text-align: center;
+  }
+
+  .coin-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .coin-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .coin-info-text { }
+
+  .coin-symbol-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .coin-symbol {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  .on-lighter-tag {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  .coin-vol {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .coin-right {
+    text-align: right;
+  }
+
+  .coin-change {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--green);
+  }
+
+  .coin-price {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  /* SPREAD BAR */
+  .spread-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .spread-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    min-width: 42px;
+  }
+
+  .spread-track {
+    flex: 1;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    overflow: visible;
+    position: relative;
+  }
+
+  .spread-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .spread-bybit-line {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 1.5px;
+    background: var(--amber);
+    left: 18%;
+  }
+
+  .spread-val {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    min-width: 50px;
+    text-align: right;
+  }
+
+  .spread-verdict {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 7px;
+    border-radius: 4px;
+    min-width: 80px;
+    text-align: center;
+  }
+  .spread-verdict.great { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border); }
+  .spread-verdict.ok { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,183,77,0.3); }
+  .spread-verdict.bad { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,83,80,0.3); }
+  .spread-verdict.loading { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+  .action-hint {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .action-hint span {
+    color: var(--blue);
+  }
+
+  /* EMPTY / LOADING */
+  .loading-state, .empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text3);
+    font-size: 13px;
+    font-family: var(--font-mono);
+  }
+
+  .loader {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  /* FOOTER */
+  .footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .footer-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  .footer-note {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-align: right;
+  }
+
+  .amber-line {
+    width: 12px;
+    height: 2px;
+    background: var(--amber);
+    border-radius: 1px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .stat-box:nth-child(2) { border-right: none; }
+    .sort-group { margin-left: 0; }
+    .controls { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo">G</div>
+    <div>
+      <div class="nav-title">Gainer Scanner</div>
+      <div class="nav-sub">Bybit × Lighter DEX</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="live-dot">
+      <span class="pulse" id="live-pulse"></span>
+      <span id="last-update">--:--</span>
+    </div>
+    <button class="btn-refresh" onclick="loadData()" id="refresh-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="refresh-icon">
+        <polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</nav>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="stat-label">Total Gainers</div>
+    <div class="stat-value" id="stat-total">—</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">On Lighter</div>
+    <div class="stat-value green" id="stat-lighter">—</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Top Gainer</div>
+    <div class="stat-value amber" id="stat-top">—</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Avg. Change</div>
+    <div class="stat-value blue" id="stat-avg">—</div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="pill-group">
+    <button class="pill active" onclick="setFilter('all')" id="f-all">All</button>
+    <button class="pill" onclick="setFilter('lighter')" id="f-lighter">✦ Lighter</button>
+    <button class="pill" onclick="setFilter('bybit')" id="f-bybit">Bybit Only</button>
+  </div>
+
+  <div class="min-change-wrap">
+    <span class="min-change-label">min %:</span>
+    <input type="number" class="min-change-input" id="min-change" value="5" min="0" max="100" step="1" onchange="applyFilterSort()">
+  </div>
+
+  <div class="sort-group">
+    <span class="sort-label">sort:</span>
+    <select class="sort-select" id="sort-by" onchange="applyFilterSort()">
+      <option value="change">% Change</option>
+      <option value="volume">Volume</option>
+      <option value="lighter">Lighter First</option>
+    </select>
+  </div>
+</div>
+
+<!-- LIST -->
+<div class="coin-list" id="coin-list">
+  <div class="loading-state">
+    <div class="loader"></div>
+    Fetching Bybit gainers...
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-legend">
+    <div class="legend-item">
+      <span class="legend-dot" style="background: var(--green); opacity: 0.7;"></span>
+      Available on Lighter
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot" style="background: var(--text3);"></span>
+      Bybit only
+    </div>
+    <div class="legend-item">
+      <div class="amber-line"></div>
+      Bybit fee (0.055%)
+    </div>
+  </div>
+  <div class="footer-note">Auto-refresh every 60s<br>Data: Bybit Public API</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── CONFIG ───────────────────────────────────────────────
+  const LIGHTER_MARKETS = new Set([
+    'BTC','ETH','SOL','ARB','OP','AVAX','MATIC','LINK','UNI','AAVE',
+    'LIT','WIF','PEPE','DOGE','ADA','DOT','ATOM','TIA','BLUR','CRV',
+    'GMX','GRT','IMX','INJ','JTO','JUP','MANTA','NEAR','ORDI','PENDLE',
+    'PYTH','SEI','SNX','STX','SUI','SUPER','SUSHI','VELO','W','WLD',
+    'XRP','ZEC','ZRX','COMP','YFI','MEME','BONK','BOME','WEN','APT',
+    'FTM','FIL','LDO','ROSE','RNDR','SAND','SHIB','STRK','HYPE','ENA',
+    'EIGEN','MEW','POPCAT','MOG','PNUT','ACT','GOAT','AI16Z','VIRTUAL',
+    'FARTCOIN','ZEN','TAO','IO','NOT','DOGS','HMSTR','CATI','MAJOR'
+  ]);
+
+  const BYBIT_FEE = 0.055;
+  let allCoins = [];
+  let currentFilter = 'all';
+  let refreshInterval;
+
+  // ─── UTILS ────────────────────────────────────────────────
+  function isOnLighter(symbol) {
+    const base = symbol.replace(/USDT$|USDC$|PERP$/, '');
+    return LIGHTER_MARKETS.has(base);
+  }
+
+  function baseSymbol(symbol) {
+    return symbol.replace(/USDT$|USDC$|PERP$/, '');
+  }
+
+  function formatVol(v) {
+    if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+    if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+    if (v >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
+    return '$' + v.toFixed(0);
+  }
+
+  function formatPrice(p) {
+    if (p >= 1000) return '$' + p.toLocaleString(undefined, {maximumFractionDigits: 0});
+    if (p >= 1) return '$' + p.toFixed(2);
+    if (p >= 0.001) return '$' + p.toFixed(4);
+    return '$' + p.toFixed(6);
+  }
+
+  function initials(sym) {
+    return sym.slice(0, 2).toUpperCase();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ─── SPREAD LABEL ─────────────────────────────────────────
+  function spreadInfo(spread) {
+    if (spread === null || spread === undefined) {
+      return { cls: 'loading', label: 'checking...', color: '#8a8f9e', pct: 0 };
+    }
+    const s = parseFloat(spread);
+    const pct = Math.min((s / 2) * 100, 100);
+    if (s < BYBIT_FEE) {
+      return { cls: 'great', label: '✓ cheaper', color: '#00e676', pct };
+    } else if (s < 0.3) {
+      return { cls: 'ok', label: '~ borderline', color: '#ffb74d', pct };
+    } else {
+      return { cls: 'bad', label: '✗ skip', color: '#ef5350', pct };
+    }
+  }
+
+  // ─── FETCH BYBIT ──────────────────────────────────────────
+  async function fetchBybitGainers() {
+    const resp = await fetch(
+      'https://api.bybit.com/v5/market/tickers?category=linear',
+      { signal: AbortSignal.timeout(12000) }
+    );
+    if (!resp.ok) throw new Error('Bybit API error ' + resp.status);
+    const data = await resp.json();
+    if (data.retCode !== 0) throw new Error('Bybit: ' + data.retMsg);
+
+    const list = data.result?.list || [];
+    return list
+      .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.price24hPcnt || 0) > 0)
+      .sort((a, b) => parseFloat(b.price24hPcnt) - parseFloat(a.price24hPcnt))
+      .slice(0, 60)
+      .map((t, i) => ({
+        rank: i + 1,
+        symbol: t.symbol,
+        base: baseSymbol(t.symbol),
+        price: parseFloat(t.lastPrice),
+        change: parseFloat(t.price24hPcnt) * 100,
+        volume: parseFloat(t.turnover24h || 0),
+        onLighter: isOnLighter(t.symbol),
+        spread: undefined,
+      }));
+  }
+
+  // ─── FETCH LIGHTER SPREAD ─────────────────────────────────
+  async function fetchLighterSpread(base) {
+    try {
+      const url = `https://mainnet.zklighter.elliot.ai/api/v1/orderbook?market_symbol=${base}-USDC&depth=2`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!resp.ok) return null;
+      const d = await resp.json();
+      const asks = d.asks || d.sell_orders || [];
+      const bids = d.bids || d.buy_orders || [];
+      if (!asks.length || !bids.length) return null;
+      const ask = parseFloat(Array.isArray(asks[0]) ? asks[0][0] : asks[0].price);
+      const bid = parseFloat(Array.isArray(bids[0]) ? bids[0][0] : bids[0].price);
+      if (!ask || !bid || bid <= 0) return null;
+      return ((ask - bid) / bid * 100).toFixed(3);
+    } catch {
+      return null;
+    }
+  }
+
+  // ─── RENDER ───────────────────────────────────────────────
+  function renderCoins(coins) {
+    const list = document.getElementById('coin-list');
+    if (!coins.length) {
+      list.innerHTML = `<div class="empty-state">No coins match your filters.</div>`;
+      return;
+    }
+
+    const lighterCoins = coins.filter(c => c.onLighter);
+    const bybitCoins = coins.filter(c => !c.onLighter);
+    let html = '';
+
+    if (lighterCoins.length) {
+      html += `<div class="section-label">✦ Available on Lighter (${lighterCoins.length})</div>`;
+      html += lighterCoins.map(c => renderCard(c)).join('');
+    }
+
+    if (bybitCoins.length && currentFilter !== 'lighter') {
+      html += `<div class="section-label" style="margin-top:8px">Bybit only (${bybitCoins.length})</div>`;
+      html += bybitCoins.map(c => renderCard(c)).join('');
+    }
+
+    list.innerHTML = html;
+  }
+
+  function renderCard(c) {
+    const si = spreadInfo(c.spread);
+    const spreadVal = c.spread !== undefined && c.spread !== null
+      ? parseFloat(c.spread).toFixed(3) + '%'
+      : (c.onLighter ? '…' : '');
+    const spreadBarWidth = c.spread !== undefined && c.spread !== null ? si.pct.toFixed(1) : 0;
+
+    const spreadSection = c.onLighter ? `
+      <div class="spread-row">
+        <span class="spread-label">spread</span>
+        <div class="spread-track">
+          <div class="spread-fill" style="width:${spreadBarWidth}%; background:${si.color};"></div>
+          <div class="spread-bybit-line" title="Bybit fee 0.055%"></div>
+        </div>
+        <span class="spread-val" style="color:${si.color}">${spreadVal}</span>
+        <span class="spread-verdict ${si.cls}">${si.label}</span>
+      </div>` : `
+      <div class="action-hint">
+        <span>→</span> Only on Bybit — check setup before entering
+      </div>`;
+
+    return `
+    <div class="coin-card ${c.onLighter ? 'on-lighter' : 'bybit-only'}"
+         onclick="openCoin('${c.base}', ${c.onLighter})"
+         style="animation-delay: ${Math.random() * 0.1}s">
+      <div class="card-row1">
+        <div class="coin-left">
+          <span class="rank-badge">#${c.rank}</span>
+          <div class="coin-avatar">${initials(c.base)}</div>
+          <div class="coin-info-text">
+            <div class="coin-symbol-row">
+              <span class="coin-symbol">${c.base}</span>
+              ${c.onLighter ? '<span class="on-lighter-tag">LIGHTER</span>' : ''}
+            </div>
+            <div class="coin-vol">${formatVol(c.volume)} vol 24h</div>
+          </div>
+        </div>
+        <div class="coin-right">
+          <div class="coin-change">+${c.change.toFixed(2)}%</div>
+          <div class="coin-price">${formatPrice(c.price)}</div>
+        </div>
+      </div>
+      ${spreadSection}
+    </div>`;
+  }
+
+  // ─── FILTER / SORT ────────────────────────────────────────
+  function setFilter(f) {
+    currentFilter = f;
+    ['all','lighter','bybit'].forEach(x => {
+      document.getElementById('f-' + x)?.classList.toggle('active', x === f);
+    });
+    applyFilterSort();
+  }
+
+  function applyFilterSort() {
+    let coins = [...allCoins];
+    const minChange = parseFloat(document.getElementById('min-change').value) || 0;
+    const sort = document.getElementById('sort-by').value;
+
+    coins = coins.filter(c => c.change >= minChange);
+    if (currentFilter === 'lighter') coins = coins.filter(c => c.onLighter);
+    if (currentFilter === 'bybit') coins = coins.filter(c => !c.onLighter);
+
+    if (sort === 'change') coins.sort((a, b) => b.change - a.change);
+    else if (sort === 'volume') coins.sort((a, b) => b.volume - a.volume);
+    else if (sort === 'lighter') coins.sort((a, b) => (b.onLighter ? 1 : 0) - (a.onLighter ? 1 : 0) || b.change - a.change);
+
+    renderCoins(coins);
+  }
+
+  // ─── STATS ────────────────────────────────────────────────
+  function updateStats(coins) {
+    const lighterCount = coins.filter(c => c.onLighter).length;
+    const top = coins[0];
+    const avg = coins.reduce((s, c) => s + c.change, 0) / coins.length;
+    document.getElementById('stat-total').textContent = coins.length;
+    document.getElementById('stat-lighter').textContent = lighterCount;
+    document.getElementById('stat-top').textContent = top ? '+' + top.change.toFixed(1) + '%' : '—';
+    document.getElementById('stat-avg').textContent = '+' + avg.toFixed(1) + '%';
+  }
+
+  // ─── LOAD DATA ────────────────────────────────────────────
+  async function loadData() {
+    const btn = document.getElementById('refresh-btn');
+    const icon = document.getElementById('refresh-icon');
+    btn.disabled = true;
+    icon.style.animation = 'spin 0.7s linear infinite';
+
+    if (!allCoins.length) {
+      document.getElementById('coin-list').innerHTML =
+        `<div class="loading-state"><div class="loader"></div>Fetching Bybit gainers...</div>`;
+    }
+
+    try {
+      allCoins = await fetchBybitGainers();
+      updateStats(allCoins);
+      applyFilterSort();
+
+      const now = new Date();
+      document.getElementById('last-update').textContent =
+        now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      // fetch spreads for lighter coins in background
+      const lighterCoins = allCoins.filter(c => c.onLighter).slice(0, 15);
+      for (const coin of lighterCoins) {
+        fetchLighterSpread(coin.base).then(spread => {
+          coin.spread = spread;
+          applyFilterSort();
+        });
+      }
+
+    } catch (e) {
+      if (!allCoins.length) {
+        document.getElementById('coin-list').innerHTML =
+          `<div class="empty-state">⚠ ${e.message}<br><br>Check your connection and try refreshing.</div>`;
+      }
+      showToast('⚠ ' + e.message);
+    } finally {
+      btn.disabled = false;
+      icon.style.animation = '';
+    }
+  }
+
+  function openCoin(base, onLighter) {
+    let url;
+    if (onLighter) {
+      url = `https://app.lighter.xyz/trade/${base}-USDC`;
+    } else {
+      url = `https://www.bybit.com/trade/usdt/${base}USDT`;
+    }
+    window.open(url, '_blank');
+  }
+
+  // ─── INIT ─────────────────────────────────────────────────
+  loadData();
+  refreshInterval = setInterval(loadData, 60000);
+</script>
+
+</body>
+</html>
