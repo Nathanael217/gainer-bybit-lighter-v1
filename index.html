@@ -684,16 +684,7 @@
 
 <script>
   // ─── CONFIG ───────────────────────────────────────────────
-  const LIGHTER_MARKETS = new Set([
-    'BTC','ETH','SOL','ARB','OP','AVAX','MATIC','LINK','UNI','AAVE',
-    'LIT','WIF','PEPE','DOGE','ADA','DOT','ATOM','TIA','BLUR','CRV',
-    'GMX','GRT','IMX','INJ','JTO','JUP','MANTA','NEAR','ORDI','PENDLE',
-    'PYTH','SEI','SNX','STX','SUI','SUPER','SUSHI','VELO','W','WLD',
-    'XRP','ZEC','ZRX','COMP','YFI','MEME','BONK','BOME','WEN','APT',
-    'FTM','FIL','LDO','ROSE','RNDR','SAND','SHIB','STRK','HYPE','ENA',
-    'EIGEN','MEW','POPCAT','MOG','PNUT','ACT','GOAT','AI16Z','VIRTUAL',
-    'FARTCOIN','ZEN','TAO','IO','NOT','DOGS','HMSTR','CATI','MAJOR'
-  ]);
+  let LIGHTER_MARKETS = new Set();
 
   const BYBIT_FEE = 0.055;
   let allCoins = [];
@@ -701,9 +692,32 @@
   let refreshInterval;
 
   // ─── UTILS ────────────────────────────────────────────────
+  async function fetchLighterMarkets() {
+    try {
+      const resp = await fetch('https://mainnet.zklighter.elliot.ai/api/v1/orderBooks', { signal: AbortSignal.timeout(8000) });
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+      const arr = data.order_books || data.orderBooks || data || [];
+      const books = Array.isArray(arr) ? arr : Object.values(arr);
+      books.forEach(m => {
+        const sym = m.market_symbol || m.symbol || '';
+        const base = sym.split('-')[0].split('/')[0].toUpperCase();
+        if (base) LIGHTER_MARKETS.add(base);
+      });
+      if (LIGHTER_MARKETS.size === 0) throw new Error('empty');
+      console.log('Lighter v1 markets:', [...LIGHTER_MARKETS].sort().join(', '));
+    } catch(e) {
+      // fallback
+      ['BTC','ETH','SOL','ARB','OP','AVAX','LINK','UNI','AAVE','LIT','WIF','PEPE',
+       'DOGE','ADA','DOT','INJ','SUI','WLD','XRP','ZEC','BONK','HYPE','ENA',
+       'MRVL','NVDA','TSLA','AAPL','META','GOOGL','TRX','BCH','NEAR','STRK',
+       'AI16Z','VIRTUAL','TAO','FARTCOIN','DOLO','STBL','PNUT','GOAT'].forEach(s => LIGHTER_MARKETS.add(s));
+    }
+  }
+
   function isOnLighter(symbol) {
     const base = symbol.replace(/USDT$|USDC$|PERP$/, '');
-    return LIGHTER_MARKETS.has(base);
+    return LIGHTER_MARKETS.has(base.toUpperCase());
   }
 
   function baseSymbol(symbol) {
@@ -957,8 +971,10 @@
   }
 
   // ─── INIT ─────────────────────────────────────────────────
-  loadData();
-  refreshInterval = setInterval(loadData, 60000);
+  fetchLighterMarkets().then(() => {
+    loadData();
+    refreshInterval = setInterval(loadData, 60000);
+  });
 </script>
 
 </body>
